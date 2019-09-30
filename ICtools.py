@@ -175,7 +175,7 @@ def getCameraParams(cam):
         'gain': gain,
         'exposure': cam.GetPropertyAbsoluteValue('Exposure', 'Value'),
         'exposure auto ref': cam.GetPropertyValue('Exposure', 'Auto reference'),
-        'exposure auto max': automax
+        'exposure auto max': automax,
         'highlight reduction': highlightReduction,
         'sharpness': cam.GetPropertyValue('Sharpness', 'Value'),
         'gamma': cam.GetPropertyValue('Gamma', 'Value'),
