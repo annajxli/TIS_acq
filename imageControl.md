@@ -30,15 +30,19 @@ Hit "Ok"
 
 ```python
 import os, sys
-sys.path.append(os.path.abspath(r'C:\Users\anna\Repositories\TIS_acq\src'))
 import tisgrabber as ic
 import ICtools
 
 # init camera object
 cam = ic.TIS_CAM()
 
-# OPTIONAL/eaiser: open device window
-cam.ShowDeviceSelectionDialog()
+# set the settings we usually use: prints 1 on success
+cam.open('DMK 72BUC02 7610448')
+cam.SetVideoFormat('Y800 (640x480 VGA)')
+cam.SetFrameRate(15.0)
+
+# or do this: open device selection GUI
+# cam.ShowDeviceSelectionDialog()
 ```
 
 ----
@@ -50,15 +54,15 @@ For items like gain/exposure, it may be prudent to figure out the values in IC C
 params = {
     'brightness': 0, # default 0
     'contrast': 0, # default 0
-    'gain': 4, # try 4-6, or 'auto', case sensitive
-    'exposure': 1/14, # greater than 1/15 (smaller denominator)
+    'gain': 'auto', # int or 'auto', case sensitive
+    'exposure': 1/14, # greater than frame time: usually 1/15s
     'exposureAutoRef': 128, # default 128
     'exposureAutoMax': 'auto', # having trouble setting this value. use default 'auto'
     'highlightReduction': False, # bool
     'sharpness': 0, # default 0
     'gamma': 100, # default 100
     'denoise': 0, # default 0
-    'autoCenter': False, # bool, keep false
+    'autoCenter': False, # bool, keep false if setting manually
     'xOffset': 0, # adjust to IC Capture
     'yOffset': 0, # adjust to IC Capture
     'trigger': False, # bool, we don't have one
@@ -93,6 +97,7 @@ stack = ICtools.acquireStack(cam, acqLengthS=10, doStrobe=True,
 If you want to look at the feed without acquiring.
 
 ```python
+# window stops responding if you click on it?
 cam.StartLive(1) # 1 makes a window pop up, showing you the image
 ```
 

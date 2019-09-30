@@ -47,9 +47,8 @@ def setCameraParams(cam, params):
         cam.SetPropertySwitch('Partial scan', 'Partial scan auto center', 1)
     else:
         cam.SetPropertySwitch('Partial scan', 'Partial scan auto center', 0)
-
-    cam.SetPropertyValue('Partial scan', 'X offset', params['xOffset'])
-    cam.SetPropertyValue('Partial scan', 'Y offset', params['yOffset'])
+        cam.SetPropertyValue('Partial scan', 'X offset', params['xOffset'])
+        cam.SetPropertyValue('Partial scan', 'Y offset', params['yOffset'])
 
     if params['trigger']:
         cam.SetPropertySwitch('Trigger', 'Enable', 1)
@@ -72,7 +71,7 @@ def setCameraParams(cam, params):
         cam.SetPropertySwitch('Tone mapping', 'Enable', 0)
 
 
-def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir):
+def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir, saveTxt):
     """ Take a timed image stack with the camera.
 
     :param cam: (TIC_CAM) instantiated camera object
@@ -81,6 +80,7 @@ def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir):
     :param downscaleTuple: (tuple) downscaling factors in (T, x, y), e.g. (1, 2, 2) for 2x downscale
     :param animal: (str) animal ID
     :param outdir: (str) folder to save stack to
+    :param saveTxt: (bool) whether or not to save params as a txt file
     :return stack: (np array) acquired image stack
     """
     stack = []
@@ -110,6 +110,82 @@ def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir):
     timeStr = time.strftime("_%y%m%d_%H-%M-%S", time.localtime(t_start))
     outfile = os.path.join(outdir, '{}{}.tif'.format(animal, timeStr))
     tfl.imsave(outfile, stack)
-    print('Saved to {}'.format(outfile))
+    nFrames = stack.shape[0]
+    
+    print('Saved {} frames to {}'.format(nFrames, outfile))
+
+    if saveTxt:
+        params = getCameraParams(cam)
+        f = open(os.path.join(outdir,'{}{}.txt'.format(animal, timeStr)))
+        f.write(str(params))
+        f.close()
 
     return stack
+
+def getCameraParams(cam):
+    """ Create a dict of imaging params.
+
+    :param cam: camera object to collect params from
+    :return: (dict) of parameters
+    """
+    # automatic ones here
+    if cam.GetPropertySwitch('Gain', 'Auto') == 1:
+        gain = 'auto'
+    else:
+        gain = cam.GetPropertyValue('Gain', 'Value')
+
+    if cam.GetPropertySwitch('Exposure', 'Auto max value auto') == 1:
+        automax = 'auto'
+    else:
+        automax = cam.GetPropertyValue('Exposure', 'Auto max value')
+
+    if cam.GetPropertySwitch('Highlight reduction', 'Value') == 1:
+        highlightReduction = True
+    else:
+        highlightReduction = False
+
+    if cam.GetPropertySwitch('Partial scan', 'Partial scan auto center') == 1:
+        autoCenter = True
+    else:
+        autoCenter = False
+
+    if cam.GetPropertySwitch('Trigger', 'Enable') == 1:
+        trigger = True
+    else:
+        trigger = False
+
+    if cam.GetPropertySwitch('Strobe', 'Enable') == 1:
+        strobe = True
+    else:
+        strobe = False
+
+    if cam.GetPropertySwitch('Strobe', 'Polarity') == 1:
+        polarity = True
+    else:
+        polarity = False
+
+    if cam.GetPropertySwitch('Tone mapping', 'Enable') == 1:
+        toneMapping = True
+    else:
+        toneMapping = False
+
+    params = {
+        'brightness': cam.GetPropertyValue('Brightness', 'Value'),
+        'contrast': cam.GetPropertyValue('Gain', 'Value'),
+        'gain': gain,
+        'exposure': cam.GetPropertyAbsoluteValue('Exposure', 'Value'),
+        'exposure auto ref': cam.GetPropertyValue('Exposure', 'Auto reference'),
+        'exposure auto max': automax
+        'highlight reduction': highlightReduction,
+        'sharpness': cam.GetPropertyValue('Sharpness', 'Value'),
+        'gamma': cam.GetPropertyValue('Gamma', 'Value'),
+        'denoise': cam.GetPropertyValue('Denoise', 'Value'),
+        'auto center': autoCenter,
+        'x offset': cam.GetPropertyValue('Partial scan', 'X offset'),
+        'y offset': cam.GetPropertyValue('Partial scan', 'Y offset'),
+        'trigger': trigger,
+        'strobe': strobe,
+        'strobe polarity': polarity,
+        'tone mapping': toneMapping
+             }
+    return params
