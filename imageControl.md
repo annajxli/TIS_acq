@@ -27,7 +27,7 @@ setCameraDefaults sets our defaults:
 
 To use a different camera or settings, open the device selection dialog.
 
-Note that the camera parameters may be different, so setting them may throw errors.
+Note that the camera parameters for a different model may be different, so setting them may throw errors.
 
 ```python
 import os, sys
@@ -46,7 +46,7 @@ ICtools.setCameraDefaults(cam)
 ----
 #### Set video properties
 
-For items like gain/exposure, it may be prudent to figure out the values in IC Capture first, then enter them here.
+Figure out the params in IC Capture first, then enter them here.
 
 ```python
 params = {
@@ -76,9 +76,7 @@ ICtools.setCameraParams(cam, params)
 #### Acquisition here
 
 Notes:
-- Each snapped image is three frames, so averaging those down.
-- This way, 1 second of 15 fps 640x480 is about 8 mb.
-- The strobe "works", but seems to always send one extra pulse. Not clear why.
+- Using Labjack to send TTL pulses now (no strobe)
 
 ```python
 # the preceding r is needed for windows
@@ -90,7 +88,7 @@ stack = ICtools.acquireStack(cam, nFrames=1800, downscaleTuple=(1,2,2),
 ```
 
 #### Start/stop the live feed
-If you want to look at the feed without acquiring.
+If you want to look at the feed without acquiring. Returns 1 on success.
 
 ```python
 # window stops responding if you click on it?
