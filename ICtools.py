@@ -3,7 +3,7 @@ from skimage import transform
 import tifffile as tfl
 import time
 import os
-import tisgrabber as ic
+import u6
 
 
 def _set_and_check(camFn, *pv):
@@ -118,12 +118,12 @@ def setCameraParams(cam, params):
     print('Parameters set successfully.')
 
 
-def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir):
+def acquireStack(cam, nFrames, downscaleTuple, animal, outdir):
     """   Get an image stack from the camera.
      Args:
         cam: (TIS_CAM) initialized camera object
-        acqLengthS: (int) acquisition length in seconds
-        doStrobe: (bool) whether or not to send strobe signal
+        nFrames: (int) number of frames to acquire
+        sendCounter (bool) whether or not to send strobe signal
         downscaleTuple: (tuple) downscale factor in (z, x, y), e.g. (1, 2, 2) for 2x downscale
         animal: (str) animal ID, used for output naming
         outdir: (str) path to output directory
@@ -131,28 +131,40 @@ def acquireStack(cam, acqLengthS, doStrobe, downscaleTuple, animal, outdir):
     Returns:
         stack: (np.ndarray) image stack in (z, x, y)
     """
+    # setup the labjack
+    dioPortNum = 0  # FIO0
+    u6Obj = u6.U6()
+    u6Obj.configU6()
+    u6Obj.configIO()
+    u6Obj.setDOState(dioPortNum, state=0)
 
     stack = []
-    t_start = time.time()
-    t_end = t_start + acqLengthS
 
     cam.StartLive(1)
-
-    if doStrobe:
-        _set_and_check(cam.SetPropertyValue, 'GPIO', 'GP Out', 1)
-        _set_and_check(cam.PropertyOnePush, 'GPIO', 'Write')
-
-    while time.time() < t_end:
+    # Not using 191001: strobe code below.
+    # if sendCounter:
+    #     _set_and_check(cam.SetPropertyValue, 'GPIO', 'GP Out', 1)
+    #     _set_and_check(cam.PropertyOnePush, 'GPIO', 'Write')
+    t_start = time.time()
+    for iF in np.arange(nFrames):
+        pulseLengthTicks = int(1000/64)
+        u6Obj.getFeedback(u6.BitDirWrite(dioPortNum, 1),
+                          u6.BitStateWrite(dioPortNum, State=1),
+                          u6.WaitShort(pulseLengthTicks),
+                          u6.BitStateWrite(dioPortNum, State=0))
         cam.SnapImage()
         im = cam.GetImage()  # appears to have three identical(?) frames
-        stack.append(np.mean(im, axis=2))  # averaging to one frame
+        im = np.mean(im, axis=2).astype('int16')
+        stack.append(im)  # averaging to one frame
 
-    if doStrobe:
-        _set_and_check(cam.SetPropertyValue, 'GPIO', 'GP Out', 0)
-        _set_and_check(cam.PropertyOnePush, 'GPIO', 'Write')
+    # Not using 191001: strobe code below.
+    # if sendCounter:
+    #     _set_and_check(cam.SetPropertyValue, 'GPIO', 'GP Out', 0)
+    #     _set_and_check(cam.PropertyOnePush, 'GPIO', 'Write')
 
     cam.StopLive()
 
+    print('Done. Downsizing and saving.')
     stack = np.r_[stack]
     stack = transform.downscale_local_mean(stack, downscaleTuple)
     stack = stack.astype('int16')
